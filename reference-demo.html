@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Transcript-synced video demo (real video)</title>
+<style>
+  :root{
+    --bg: #faf9f6;
+    --surface: #ffffff;
+    --surface-2: #f1efe8;
+    --border: #e3e0d6;
+    --text-primary: #1f1e1b;
+    --text-secondary: #6b685f;
+    --text-muted: #9c9890;
+    --accent-bg: #e6f1fb;
+    --accent-text: #0c447c;
+    --success-bg: #eaf3de;
+    --success-text: #27500a;
+    --warning-bg: #faeeda;
+    --warning-text: #633806;
+    --radius: 10px;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display:flex;
+    justify-content:center;
+    padding: 40px 16px;
+  }
+  .page{ width:100%; max-width: 640px; }
+  .note{
+    font-size:13px;
+    color: var(--text-secondary);
+    line-height:1.6;
+    margin: 0 0 24px;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border-radius: var(--radius);
+  }
+  .card{
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .label{
+    font-size:13px;
+    font-weight:600;
+    color: var(--text-secondary);
+    margin: 0 0 10px;
+  }
+  .video-wrap{
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  #player{
+    position:absolute; top:0; left:0; width:100%; height:100%;
+  }
+  .video-title{ font-size:14px; font-weight:600; margin:0 0 4px; }
+  .video-sub{ font-size:12px; color: var(--text-muted); margin:0; }
+  .badges{ display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .badge{
+    font-size:12px; padding:5px 10px; border-radius: var(--radius);
+    background: var(--surface-2); color: var(--text-secondary);
+  }
+  .badge.success{ background: var(--success-bg); color: var(--success-text); }
+  .takeaway{ display:flex; gap:8px; align-items:flex-start; font-size:14px; line-height:1.6; margin-bottom:8px; }
+  .takeaway .check{ color: var(--success-text); flex-shrink:0; }
+  .chapter-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 4px; border-bottom: 0.5px solid var(--border);
+    cursor:pointer; font-size:14px;
+  }
+  .chapter-row:hover{ background: var(--surface-2); }
+  .chapter-row span.time{ font-size:13px; color: var(--text-secondary); }
+  #searchInput{
+    width:100%; height:38px; border-radius: var(--radius);
+    border: 0.5px solid var(--border); padding: 0 12px; font-size:14px;
+    background: var(--surface);
+  }
+  #searchInput:focus{ outline: none; border-color:#378ADD; box-shadow: 0 0 0 2px var(--accent-bg); }
+  #transcript{ font-size:15px; line-height:1.8; }
+  #transcript p{ margin:0 0 14px; }
+  .word{ border-radius:3px; padding:0 1px; cursor:pointer; }
+  .word:hover{ text-decoration: underline; }
+  .word.active{ background: var(--accent-bg); color: var(--accent-text); }
+  .word.match{ background: var(--warning-bg); color: var(--warning-text); }
+  .ask-btn{
+    width:100%; height:40px; border-radius: var(--radius);
+    border: 0.5px solid var(--border); background: var(--surface);
+    font-size:14px; cursor:pointer; color: var(--text-primary);
+  }
+  .ask-btn:hover{ background: var(--surface-2); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <p class="note">
+    The video below is a real, live YouTube embed and the seeking is fully functional &mdash; clicking a transcript word or chapter actually moves the real player. The transcript, summary, and chapters underneath are illustrative placeholder text I wrote, not the real captions for this video (reproducing someone else's transcript verbatim isn't something I can do for copyright reasons). In a real product, that text would come from running the video's actual audio through a transcription service.
+  </p>
+
+  <div class="card">
+    <p class="video-title">Beginner's guide to budgeting</p>
+    <p class="video-sub" id="videoMeta">Loading video&hellip;</p>
+    <div class="video-wrap">
+      <div id="player"></div>
+    </div>
+  </div>
+
+  <div class="badges">
+    <span class="badge success">Beginner</span>
+    <span class="badge" id="durationBadge">&ndash;:&ndash;&ndash; watch</span>
+    <span class="badge">1 min read</span>
+  </div>
+
+  <div class="card">
+    <p class="label">AI summary <span style="font-weight:400; color: var(--text-muted);">(illustrative example)</span></p>
+    <p style="font-size:15px; line-height:1.7; margin:0 0 16px;">
+      This video walks through building a budget when income is not steady. It starts with calculating a realistic average income, then splitting spending into needs, wants, and savings using a 50/30/20 starting point. The back half covers protecting against low income months with a one month buffer account, and closes with advice to track spending for 30 days and revisit the budget monthly.
+    </p>
+    <div style="border-top:0.5px solid var(--border); padding-top:14px;">
+      <p class="label" style="margin-bottom:10px;">Key takeaways</p>
+      <div class="takeaway"><span class="check">&#10003;</span><span>Base your budget on your average income across six months, not your best one</span></div>
+      <div class="takeaway"><span class="check">&#10003;</span><span>Split spending into needs, wants, and savings, starting with a 50/30/20 ratio</span></div>
+      <div class="takeaway"><span class="check">&#10003;</span><span>Keep a one month buffer account to cover slow income periods</span></div>
+      <div class="takeaway"><span class="check">&#10003;</span><span>Track every expense for 30 days before locking in your numbers</span></div>
+      <div class="takeaway"><span class="check">&#10003;</span><span>Revisit your budget every month since the numbers will shift</span></div>
+    </div>
+  </div>
+
+  <p class="label">Chapters <span style="font-weight:400; color: var(--text-muted);">(illustrative timestamps &mdash; click to seek the real video)</span></p>
+  <div style="margin-bottom:20px;">
+    <div class="chapter-row" data-time="0"><span>Intro</span><span class="time">0:00</span></div>
+    <div class="chapter-row" data-time="15"><span>Know your real income</span><span class="time">0:15</span></div>
+    <div class="chapter-row" data-time="30"><span>Needs, wants, and savings</span><span class="time">0:30</span></div>
+    <div class="chapter-row" data-time="80"><span>The 50/30/20 split</span><span class="time">1:20</span></div>
+    <div class="chapter-row" data-time="92"><span>Build a buffer account</span><span class="time">1:32</span></div>
+    <div class="chapter-row" data-time="120"><span>Track before deciding</span><span class="time">2:00</span></div>
+    <div class="chapter-row" data-time="150"><span>Wrap-up</span><span class="time">2:30</span></div>
+  </div>
+
+  <div style="margin-bottom:20px;">
+    <input id="searchInput" type="text" placeholder="Search this transcript" />
+  </div>
+
+  <p class="label">Transcript <span style="font-weight:400; color: var(--text-muted);">(illustrative example &mdash; click any word to seek the real video)</span></p>
+  <div id="transcript">
+    <p data-start="0" data-end="15">Welcome back to the channel. Today we're talking about how to build a budget that actually works, even if your income changes every month.</p>
+    <p data-start="15" data-end="30">The first step is figuring out your real average income. Don't use your best month. Use the average of your last six months.</p>
+    <p data-start="30" data-end="54">Once you know that number, split your expenses into three buckets: needs, wants, and savings. Needs are rent, groceries, and utilities, and they should never be skipped.</p>
+    <p data-start="54" data-end="80">Wants are things like eating out, subscriptions, and entertainment. These are the first to cut when money gets tight. Savings covers your emergency fund, debt payoff, and any investing you're doing.</p>
+    <p data-start="80" data-end="92">A simple starting ratio is fifty percent needs, thirty percent wants, and twenty percent savings.</p>
+    <p data-start="92" data-end="120">But if your income is irregular, build a buffer account. Keep one month of expenses sitting there at all times. That buffer is what protects you during slow months, so you're not scrambling to cover rent.</p>
+    <p data-start="120" data-end="150">Track everything for at least thirty days before you decide your final numbers. You'll be surprised where your money actually goes. Review your budget every month, since your numbers will shift.</p>
+    <p data-start="150" data-end="165">That's it for today. If this helped, the next video covers how to automate your entire budget in under ten minutes.</p>
+  </div>
+
+  <button class="ask-btn" onclick="alert('In the real product, this would send your question to an AI model along with the transcript, and return an answer grounded in what was actually said.')">Ask the video a question</button>
+
+</div>
+
+<script>
+  let player;
+  let pollTimer = null;
+  let activeWord = null;
+  let matchSet = new Set();
+  const allWords = [];
+
+  const transcript = document.getElementById('transcript');
+  const searchInput = document.getElementById('searchInput');
+  const durationBadge = document.getElementById('durationBadge');
+  const videoMeta = document.getElementById('videoMeta');
+
+  function formatTime(t){
+    t = Math.max(0, t);
+    const m = Math.floor(t/60);
+    const s = Math.floor(t%60).toString().padStart(2,'0');
+    return m+':'+s;
+  }
+
+  transcript.querySelectorAll('p').forEach(p=>{
+    const start = parseFloat(p.dataset.start);
+    const end = parseFloat(p.dataset.end);
+    const words = p.textContent.split(' ');
+    const step = (end-start)/words.length;
+    p.innerHTML = '';
+    words.forEach((w,i)=>{
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = w + (i < words.length-1 ? ' ' : '');
+      span.dataset.time = (start + i*step).toFixed(2);
+      p.appendChild(span);
+      allWords.push(span);
+    });
+  });
+
+  function paint(){
+    allWords.forEach(w=>{
+      w.classList.remove('active','match');
+      if(w === activeWord){ w.classList.add('active'); }
+      else if(matchSet.has(w)){ w.classList.add('match'); }
+    });
+  }
+
+  function updateActiveWord(currentTime){
+    let found = null;
+    for(const w of allWords){
+      if(parseFloat(w.dataset.time) <= currentTime + 0.05){ found = w; } else break;
+    }
+    activeWord = found;
+    paint();
+  }
+
+  function seek(t){
+    if(player && player.seekTo){
+      player.seekTo(t, true);
+      player.playVideo();
+    }
+    updateActiveWord(t);
+  }
+
+  transcript.addEventListener('click',(e)=>{
+    const w = e.target.closest('.word');
+    if(w){ seek(parseFloat(w.dataset.time)); }
+  });
+
+  document.querySelectorAll('.chapter-row').forEach(row=>{
+    row.addEventListener('click', ()=>{ seek(parseFloat(row.dataset.time)); });
+  });
+
+  searchInput.addEventListener('input',(e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    matchSet = new Set();
+    if(q.length > 0){
+      allWords.forEach(w=>{
+        if(w.textContent.toLowerCase().includes(q)) matchSet.add(w);
+      });
+    }
+    paint();
+  });
+
+  function onPlayerReady(){
+    const dur = player.getDuration();
+    durationBadge.textContent = formatTime(dur) + ' watch';
+    videoMeta.textContent = 'Duration ' + formatTime(dur);
+  }
+
+  function onPlayerStateChange(e){
+    if(e.data === YT.PlayerState.PLAYING){
+      if(pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(()=>{
+        updateActiveWord(player.getCurrentTime());
+      }, 250);
+    } else {
+      if(pollTimer) clearInterval(pollTimer);
+    }
+  }
+
+  window.onYouTubeIframeAPIReady = function(){
+    player = new YT.Player('player', {
+      videoId: 'M7ucIl9MGs0',
+      playerVars: { rel: 0 },
+      events: {
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange
+      }
+    });
+  };
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
