@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useYouTube } from "./youtube-context";
 import type { TranscriptSegment } from "@/types/schema";
 
@@ -8,110 +8,140 @@ interface TranscriptPanelProps {
   segments: TranscriptSegment[];
 }
 
-interface WordSpan {
-  text: string;
-  time: number;
-  element: HTMLSpanElement | null;
-}
-
 export default function TranscriptPanel({ segments }: TranscriptPanelProps) {
   const { seekTo } = useYouTube();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const allWordsRef = useRef<WordSpan[]>([]);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [activeTime, setActiveTime] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Build word-level data from segments on mount
-  useEffect(() => {
-    const words: WordSpan[] = [];
-    const container = containerRef.current;
-    if (!container) return;
+  // Build paragraphs with time metadata for click-to-seek
+  const paragraphData = useMemo(() => {
+    if (segments.length === 0) return [];
 
-    container.innerHTML = "";
+    const chunks: { text: string; startTime: number; endTime: number }[] = [];
+    let current = segments[0].text;
+    let currentStart = segments[0].start_time;
+    let currentEnd = segments[0].end_time;
 
-    segments.forEach((seg) => {
-      const p = document.createElement("p");
-      p.className = "mb-3 leading-relaxed";
-      const tokens = seg.text.split(/\s+/);
-      const step = tokens.length > 1 ? (seg.end_time - seg.start_time) / tokens.length : 0;
+    for (let i = 1; i < segments.length; i++) {
+      const prev = segments[i - 1];
+      const curr = segments[i];
+      const gap = curr.start_time - prev.end_time;
 
-      tokens.forEach((token, i) => {
-        const span = document.createElement("span");
-        span.className =
-          "word rounded-sm px-0.5 cursor-pointer hover:underline";
-        span.textContent = token + (i < tokens.length - 1 ? " " : "");
-        const time = seg.start_time + i * step;
-        span.dataset.time = time.toFixed(2);
-        p.appendChild(span);
+      const prevEndsSentence = /[.!?]$/.test(prev.text);
+      const currentWords = current.split(/\s+/).length;
 
-        words.push({ text: token, time, element: span });
-      });
+      if ((prevEndsSentence && currentWords >= 20) || gap > 2 || currentWords >= 80) {
+        chunks.push({ text: current, startTime: currentStart, endTime: currentEnd });
+        current = curr.text;
+        currentStart = curr.start_time;
+        currentEnd = curr.end_time;
+      } else {
+        current += " " + curr.text;
+        currentEnd = curr.end_time;
+      }
+    }
+    chunks.push({ text: current, startTime: currentStart, endTime: currentEnd });
 
-      container.appendChild(p);
-    });
-
-    allWordsRef.current = words;
+    return chunks;
   }, [segments]);
 
-  // Click handler — seek to word time
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      const target = (e.target as HTMLElement).closest(".word") as HTMLSpanElement | null;
-      if (target?.dataset.time) {
-        seekTo(parseFloat(target.dataset.time));
-      }
-    },
-    [seekTo],
-  );
+  const handleClick = (e: React.MouseEvent) => {
+    const p = (e.target as HTMLElement).closest("[data-start]");
+    if (!(p instanceof HTMLElement)) return;
 
-  // Active word polling (YouTube provider can signal current time)
-  // Instead of polling, we let the YouTube API events drive this.
-  // For now, activeTime is managed by a simple polling interval.
+    const start = parseFloat(p.dataset.start || "0");
+    const end = parseFloat(p.dataset.end || "0");
+    const words = (p.textContent || "").split(/\s+/).filter(Boolean).length;
+    if (words === 0) return;
 
-  // Polling effect for active word highlighting
-  useEffect(() => {
-    // We can't poll directly since we don't have getCurrentTime exposed
-    // For now, skip active word tracking until we wire up a polling mechanism
-    // The click-seek and search highlighting still work.
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
-
-  // Search highlighting
-  useEffect(() => {
-    const q = searchQuery.trim().toLowerCase();
-    allWordsRef.current.forEach((w) => {
-      if (!w.element) return;
-      w.element.classList.remove("match");
-      if (q && w.text.toLowerCase().includes(q)) {
-        w.element.classList.add("match");
-      }
-    });
-  }, [searchQuery]);
+    // Use offsetY to find approximate word position within paragraph
+    const rect = p.getBoundingClientRect();
+    const clickY = (e.clientY - rect.top) / rect.height;
+    const clickRatio = Math.max(0, Math.min(1, clickY));
+    const time = (start + (end - start) * clickRatio) / 1000;
+    console.log("[Transcript] click", { start, end, clickRatio, time });
+    seekTo(time);
+  };
 
   return (
     <div>
-      {/* Search within transcript */}
-      <input
-        type="text"
-        placeholder="Search this transcript"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full h-9 rounded-lg border border-gray-200 dark:border-gray-700 px-3 text-sm bg-transparent mb-4"
-      />
+      <div className="relative mb-6">
+        <input
+          type="text"
+          placeholder="Search within this transcript..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full h-10 rounded-lg border border-input bg-background px-4 pr-10 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-sm"
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
-      {/* Transcript words */}
-      <div
-        ref={containerRef}
-        onClick={handleClick}
-        className="text-sm cursor-pointer select-none"
-      />
-
-      {allWordsRef.current.length === 0 && (
-        <p className="text-gray-400 italic text-sm">No transcript available.</p>
+      {paragraphData.length > 0 ? (
+        <div>
+          {paragraphData.map((p, pi) => (
+            <p
+              key={pi}
+              data-start={p.startTime}
+              data-end={p.endTime}
+              onClick={handleClick}
+              className="mb-5 text-[15px] leading-relaxed text-foreground cursor-pointer hover:opacity-90"
+            >
+              {searchQuery.trim() ? (
+                <HighlightedText text={p.text} query={searchQuery.trim()} />
+              ) : (
+                p.text
+              )}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-muted-foreground italic text-sm">
+          No transcript available for this video.
+        </p>
       )}
     </div>
+  );
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+
+  const lower = text.toLowerCase();
+  const qLower = query.toLowerCase();
+  const parts: { text: string; match: boolean }[] = [];
+  let lastIndex = 0;
+
+  let idx = lower.indexOf(qLower, lastIndex);
+  while (idx !== -1) {
+    if (idx > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, idx), match: false });
+    }
+    parts.push({ text: text.slice(idx, idx + query.length), match: true });
+    lastIndex = idx + query.length;
+    idx = lower.indexOf(qLower, lastIndex);
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), match: false });
+  }
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.match ? (
+          <span key={i} className="bg-yellow-200 dark:bg-yellow-800">
+            {part.text}
+          </span>
+        ) : (
+          <span key={i}>{part.text}</span>
+        ),
+      )}
+    </>
   );
 }

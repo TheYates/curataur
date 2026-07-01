@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Chip } from "@heroui/react";
+import { Badge } from "@/components/ui/badge";
 import PageClient from "./page-client";
 import type { Video, Channel, Category } from "@/types/schema";
 
@@ -32,10 +32,12 @@ export default async function VideoPage({ params }: PageProps) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Title + metadata */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">{video.title}</h1>
-        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+      {/* Article header */}
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold leading-tight mb-3">
+          {video.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           {channel && (
             <a
               href={
@@ -44,33 +46,56 @@ export default async function VideoPage({ params }: PageProps) {
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              className="hover:text-foreground transition-colors"
             >
               {channel.name}
             </a>
           )}
           {category && (
-            <Chip size="sm" variant="soft">
+            <Badge variant="secondary">
               {category.name}
-            </Chip>
+            </Badge>
           )}
           {video.difficulty && (
-            <Chip
-              size="sm"
-              variant="soft"
-              color={
+            <Badge
+              variant={
                 video.difficulty === "beginner"
-                  ? "success"
+                  ? "default"
                   : video.difficulty === "intermediate"
-                    ? "warning"
-                    : "danger"
+                    ? "secondary"
+                    : "destructive"
               }
             >
               {video.difficulty}
-            </Chip>
+            </Badge>
           )}
         </div>
-      </div>
+      </header>
+
+      {/* AI Summary — excerpt-style above the fold */}
+      {video.ai_summary && (
+        <section className="mb-8 max-w-prose">
+          <h2 className="text-lg font-semibold mb-2">Summary</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            {video.ai_summary}
+          </p>
+        </section>
+      )}
+
+      {/* Key Takeaways */}
+      {video.key_takeaways && video.key_takeaways.length > 0 && (
+        <section className="mb-10 max-w-prose">
+          <h2 className="text-lg font-semibold mb-3">Key Takeaways</h2>
+          <ul className="space-y-2">
+            {video.key_takeaways.map((takeaway: string, i: number) => (
+              <li key={i} className="flex gap-3 text-muted-foreground">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                <span className="leading-relaxed">{takeaway}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Player + Chapters + Transcript (client-side, YouTube context) */}
       <PageClient
@@ -79,33 +104,11 @@ export default async function VideoPage({ params }: PageProps) {
         segments={segments ?? []}
       />
 
-      {/* AI Summary */}
-      {video.ai_summary && (
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-2">Summary</h2>
-          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-            {video.ai_summary}
-          </p>
-        </section>
-      )}
-
-      {/* Key Takeaways */}
-      {video.key_takeaways && video.key_takeaways.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-2">Key Takeaways</h2>
-          <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
-            {video.key_takeaways.map((takeaway: string, i: number) => (
-              <li key={i}>{takeaway}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {/* Empty transcript fallback */}
       {!segments || segments.length === 0 ? (
-        <section className="mb-8">
+        <section className="mb-8 max-w-prose">
           <h2 className="text-lg font-semibold mb-2">Transcript</h2>
-          <p className="text-gray-400 italic">
+          <p className="text-muted-foreground italic">
             No transcript available for this video.
           </p>
         </section>

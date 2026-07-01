@@ -17,15 +17,34 @@ export default function VideoPlayer({ youtubeId }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
   const { registerPlayer } = useYouTube();
-  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    const container = containerRef.current;
+    if (!container) return;
+
+    function onReady() {
+      if (playerRef.current) {
+        console.log("[VideoPlayer] onReady fired, registering player interface");
+        registerPlayer({
+          seekTo: (s, a) => {
+            console.log("[VideoPlayer] registered seekTo called", s, a, "player exists:", !!playerRef.current);
+            playerRef.current?.seekTo(s, a);
+          },
+          getCurrentTime: () => playerRef.current?.getCurrentTime() ?? 0,
+          playVideo: () => {
+            console.log("[VideoPlayer] registered playVideo called, player exists:", !!playerRef.current);
+            playerRef.current?.playVideo();
+          },
+          pauseVideo: () => playerRef.current?.pauseVideo(),
+        });
+      } else {
+        console.warn("[VideoPlayer] onReady fired but playerRef.current is null!");
+      }
+    }
 
     function createPlayer() {
-      if (!containerRef.current || !window.YT?.Player) return;
-      playerRef.current = new YT.Player(containerRef.current, {
+      if (!window.YT?.Player) return;
+      playerRef.current = new YT.Player(container, {
         videoId: youtubeId,
         height: "100%",
         width: "100%",
@@ -33,35 +52,23 @@ export default function VideoPlayer({ youtubeId }: VideoPlayerProps) {
           rel: 0,
           modestbranding: 1,
         },
-        events: {
-          onReady: () => {
-            if (playerRef.current) {
-              registerPlayer({
-                seekTo: (s, a) => playerRef.current?.seekTo(s, a),
-                getCurrentTime: () => playerRef.current?.getCurrentTime() ?? 0,
-                playVideo: () => playerRef.current?.playVideo(),
-                pauseVideo: () => playerRef.current?.pauseVideo(),
-              });
-            }
-          },
-        },
+        events: { onReady },
       });
     }
 
     if (window.YT?.Player) {
       createPlayer();
-      return;
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer;
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.appendChild(script);
     }
-
-    window.onYouTubeIframeAPIReady = createPlayer;
-
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-    document.head.appendChild(script);
 
     return () => {
       playerRef.current?.destroy();
+      playerRef.current = null;
     };
   }, [youtubeId, registerPlayer]);
 

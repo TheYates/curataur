@@ -22,12 +22,12 @@ export default async function HomePage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <section>
         <h1 className="text-2xl font-bold mb-2">Latest Videos</h1>
-        <p className="text-default-500 mb-6">
+        <p className="text-muted-foreground mb-6">
           Curated picks with synced transcripts, AI summaries, and search.
         </p>
 
         {!videos || videos.length === 0 ? (
-          <div className="text-center py-20 text-default-400">
+          <div className="text-center py-20 text-muted-foreground/70">
             <p className="text-lg font-medium">No videos yet</p>
             <p className="text-sm mt-1">
               Videos will appear here once the curator adds them.

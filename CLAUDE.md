@@ -26,14 +26,12 @@ ingestion logic is described below.
 ## Tech stack
 
 - **Framework:** Next.js (App Router), TypeScript
-- **UI components:** [HeroUI](https://heroui.com) (`@heroui/react`) — use its components
-  for all UI primitives (buttons, inputs, cards, badges, modals, etc.) rather than
-  building bespoke ones. HeroUI v3 is built on Tailwind CSS v4 and React Aria, uses a
-  compound component API (e.g. `Card.Header`, `Card.Content`), and needs no `<Provider>`
-  wrapper. Install with `npm install @heroui/react` (or scaffold via `npx heroui-cli@latest
-  init` for a pre-configured Next.js + Tailwind v4 starter). The transcript word-click
-  targets and the YouTube player wrapper are custom and won't come from HeroUI — use
-  HeroUI for everything around them (layout, nav, search input, badges, buttons, cards).
+- **UI components:** [shadcn/ui](https://ui.shadcn.com) (New York style, slate base). Install
+  via `pnpm dlx shadcn@2.3.0 add <component>`. All components live under
+  `src/components/ui/`. The `cn()` utility is at `src/lib/utils.ts`.
+- **Styling:** Tailwind CSS v3.4 with `tailwindcss-animate` plugin. Config in
+  `tailwind.config.ts`. Dark mode via `class` strategy (toggled by `next-themes`).
+- **Package manager:** pnpm (preferred) or bun.
 - **Hosting:** Vercel
 - **Database:** Supabase (Postgres) — schema is in `schema.sql` in this repo, already
   finalized. Use it as-is; do not redesign the tables without flagging why first.

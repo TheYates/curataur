@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default async function Header() {
   const supabase = await createClient();
@@ -39,6 +40,7 @@ export default async function Header() {
           >
             Search
           </Link>
+          <ModeToggle />
         </nav>
       </div>
     </header>

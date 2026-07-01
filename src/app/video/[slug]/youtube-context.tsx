@@ -34,8 +34,14 @@ export function YouTubeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const seekTo = useCallback((seconds: number) => {
-    playerRef.current?.seekTo(seconds, true);
-    playerRef.current?.playVideo();
+    const player = playerRef.current;
+    if (!player) {
+      console.warn("[YouTubeContext] seekTo called but no player registered");
+      return;
+    }
+    console.log("[YouTubeContext] seekTo", seconds, "player methods:", !!player.seekTo, !!player.playVideo);
+    player.seekTo(seconds, true);
+    player.playVideo();
   }, []);
 
   return (
