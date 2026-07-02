@@ -96,6 +96,7 @@ export interface Video {
   ai_summary: string | null;
   key_takeaways: string[];
   chapters: Chapter[];
+  formatted_transcript: FormattedSection[] | null;
   view_count: number;
   search_vector: string | null;
   created_at: string;
@@ -105,6 +106,13 @@ export interface Video {
 export interface Chapter {
   title: string;
   start_time: number;
+}
+
+export interface FormattedSection {
+  heading: string;
+  start_time: number;
+  end_time: number;
+  paragraphs: string[];
 }
 
 export interface VideoTag {

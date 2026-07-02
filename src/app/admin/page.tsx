@@ -8,7 +8,7 @@ export default async function AdminPage() {
     cookieStore.get("admin_session")?.value === "authenticated";
 
   if (isAuthenticated) {
-    redirect("/admin/add-video");
+    redirect("/admin/dashboard");
   }
 
   return (

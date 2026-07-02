@@ -3,6 +3,7 @@ import { Public_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import Header from "@/components/header";
+import Footer from "@/components/footer";
 
 const publicSans = Public_Sans({
   variable: "--font-public-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
         >
           <Header />
           <main className="flex-1">{children}</main>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>

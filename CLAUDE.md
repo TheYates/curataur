@@ -39,11 +39,11 @@ ingestion logic is described below.
   for title/thumbnail/duration metadata)
 - **Captions/transcripts:** Pull YouTube's own auto-generated caption track (via the
   `youtube-transcript-api` approach / the public `timedtext` endpoint). This returns
-  timestamped caption *lines*, not individual words. Word-level click targets are
+  timestamped caption _lines_, not individual words. Word-level click targets are
   produced by interpolating evenly across each line's start/end time at render time —
   do not store per-word rows in the database, store per-line segments only
   (see `transcript_segments` table in schema.sql).
-- **AI generation:** One Anthropic API call per video during ingestion, given the full
+- **AI generation:** One Gemini API call per video during ingestion (via `gemini-2.0-flash`), given the full
   transcript text, returning structured JSON: `{ summary, key_takeaways[], chapters[] }`.
   Store the result directly on the `videos` row (`ai_summary`, `key_takeaways` jsonb,
   `chapters` jsonb columns already exist in schema.sql).
@@ -51,9 +51,36 @@ ingestion logic is described below.
   `refresh_video_search()` function already defined in schema.sql. No external search
   service needed.
 
+## Visual style
+
+Current implementation is functionally correct but visually flat — plain text on a plain
+dark background with no hierarchy. Target look: the Supabase blog
+(https://supabase.com/blog), adapted with HeroUI components. Specifically:
+
+- **Layout:** center the article content in a comfortable reading column, roughly
+  680–720px max-width — do not let body text/transcript stretch full-width even on large
+  screens. The video player itself can be wider than the text column.
+- **Typography:** strong size contrast between elements — large bold headline (~2–2.5rem),
+  a clearly smaller and more muted byline/meta row, and body copy with generous line-height
+  (1.6–1.8). Use a refined sans-serif (Inter or similar via HeroUI's default font stack),
+  not the browser default.
+- **Metadata row:** directly under the title, one horizontal row containing: channel/author
+  name, publish or added date, watch time, and a category pill — use a HeroUI `Chip`/badge
+  component for the category and difficulty tags, not plain text. This row is the single
+  biggest gap versus the reference site right now.
+- **Color:** dark background, but not pure black — use a dark warm or cool gray. Pick one
+  accent color and use it sparingly and consistently: links, the active transcript word
+  highlight, and primary buttons. Do not scatter multiple accent colors around the page.
+- **Cards:** on the homepage and category pages, each video listing should be a HeroUI
+  `Card` — rounded corners, a subtle 1px border, thumbnail image, and a soft hover state
+  (border brightens slightly or a faint elevation change) — not a plain stacked list.
+- **Spacing:** more vertical breathing room between page sections than feels natural at
+  first pass — err toward generous.
+
 ## Core user flows
 
 **Curator flow (the only "content creation" step):**
+
 1. Curator pastes a YouTube URL into an internal/admin route.
 2. Backend fetches video metadata (YouTube Data API) and the caption track.
 3. Backend calls the Anthropic API once with the transcript to generate summary,
@@ -63,12 +90,13 @@ ingestion logic is described below.
 5. Video is marked `status = 'published'` and is now live.
 
 **Visitor flow:**
+
 1. Lands on homepage feed of published videos, or a category page, or a search result.
 2. Opens a video page: sees the real embedded player, badges (difficulty/watch time),
    AI summary + key takeaways, a chapters list, a search box scoped to that transcript
    (nice-to-have), and the full clickable transcript below the player.
 3. Clicking any transcript word or any chapter seeks the live video to that timestamp.
-4. Can also use the site-wide search bar to find a moment across *all* videos, not just
+4. Can also use the site-wide search bar to find a moment across _all_ videos, not just
    the one they're on.
 
 ## Pages to scaffold (V1)
@@ -115,7 +143,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 YOUTUBE_API_KEY=
-ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
 ADMIN_PASSWORD=
 ```
 

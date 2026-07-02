@@ -102,6 +102,7 @@ export default async function VideoPage({ params }: PageProps) {
         youtubeId={video.youtube_id}
         chapters={(video.chapters ?? []) as { title: string; start_time: number }[]}
         segments={segments ?? []}
+        formattedTranscript={video.formatted_transcript as { heading: string; start_time: number; end_time: number; paragraphs: string[] }[] | null}
       />
 
       {/* Empty transcript fallback */}

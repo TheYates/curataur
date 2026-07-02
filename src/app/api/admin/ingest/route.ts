@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkAdminAuth } from "@/lib/admin-auth";
+import { callGemini } from "@/lib/gemini";
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -26,6 +28,9 @@ function slugify(text: string): string {
 // ─── POST ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const unauth = await checkAdminAuth();
+  if (unauth) return unauth;
+
   try {
     const { url, categoryName } = await request.json();
 
@@ -174,66 +179,44 @@ export async function POST(request: Request) {
       }
     }
 
-    // 8. Call Anthropic API for AI summary
-    if (transcript.length > 0 && process.env.ANTHROPIC_API_KEY) {
+    // 8. Call Gemini API for AI summary, takeaways, chapters, and formatted sections
+    if (transcript.length > 0 && process.env.GEMINI_API_KEY) {
       const transcriptText = transcript.map((s: { text: string }) => s.text).join(" ");
 
+      const systemPrompt =
+        "You are a helpful assistant that analyzes video transcripts. " +
+        "Return ONLY valid JSON with this exact structure (no markdown, no code fences): " +
+        '{ "summary": "2-3 sentence summary", "key_takeaways": ["takeaway1", "takeaway2", ...], "chapters": [{"title": "Chapter name", "start_time": 0}, ...], "formatted_sections": [{"heading": "Section title", "start_time": 0, "end_time": 45, "paragraphs": ["Sentence group 1.", "Sentence group 2."]}, ...] }';
+
+      const userPrompt = `Analyze this transcript and return a summary, key takeaways (4-6), chapters with timestamps, and formatted_sections.\n\nFor formatted_sections: Group the transcript into readable sections with paragraph breaks and section headings. Do NOT change, paraphrase, or reorder any words — only add headings and paragraph breaks. Each section must include its start_time and end_time based on the original transcript timing. Output 3–8 sections depending on transcript length.\n\nTranscript:\n${transcriptText}`;
+
       try {
-        const aiRes = await fetch(
-          "https://api.anthropic.com/v1/messages",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": process.env.ANTHROPIC_API_KEY,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model: "claude-sonnet-4-20250514",
-              max_tokens: 4096,
-              system:
-                "You are a helpful assistant that analyzes video transcripts. " +
-                "Return ONLY valid JSON with this exact structure (no markdown, no code fences): " +
-                '{ "summary": "2-3 sentence summary", "key_takeaways": ["takeaway1", "takeaway2", ...], "chapters": [{"title": "Chapter name", "start_time": 0}, ...] }',
-              messages: [
-                {
-                  role: "user",
-                  content: `Analyze this transcript and return a summary, key takeaways (4-6), and chapters with timestamps:\n\n${transcriptText}`,
-                },
-              ],
+        const aiContent = await callGemini(systemPrompt, userPrompt);
+
+        try {
+          const aiResult = JSON.parse(aiContent);
+          const chapters = (aiResult.chapters ?? []).map(
+            (ch: { title?: string; start_time?: number }) => ({
+              title: ch.title ?? "",
+              start_time: Math.round(ch.start_time ?? 0),
             }),
-          },
-        );
+          );
 
-        if (aiRes.ok) {
-          const aiData = await aiRes.json();
-          const aiContent = aiData.content?.[0]?.text ?? "";
-
-          // Parse the JSON response
-          try {
-            const aiResult = JSON.parse(aiContent);
-            const chapters = (aiResult.chapters ?? []).map(
-              (ch: { title?: string; start_time?: number }) => ({
-                title: ch.title ?? "",
-                start_time: Math.round(ch.start_time ?? 0),
-              }),
-            );
-
-            // 9. Update video with AI results
-            await supabase
-              .from("videos")
-              .update({
-                ai_summary: aiResult.summary ?? null,
-                key_takeaways: aiResult.key_takeaways ?? [],
-                chapters,
-              })
-              .eq("id", video.id);
-          } catch {
-            console.error("Failed to parse AI response JSON");
-          }
+          // 9. Update video with AI results
+          await supabase
+            .from("videos")
+            .update({
+              ai_summary: aiResult.summary ?? null,
+              key_takeaways: aiResult.key_takeaways ?? [],
+              chapters,
+              formatted_transcript: aiResult.formatted_sections ?? null,
+            })
+            .eq("id", video.id);
+        } catch {
+          console.error("Failed to parse AI response JSON");
         }
       } catch (err) {
-        console.error("Anthropic API call failed:", err);
+        console.error("Gemini API call failed:", err);
       }
     }
 

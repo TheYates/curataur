@@ -57,6 +57,7 @@ create table videos (
   ai_summary text,
   key_takeaways jsonb default '[]'::jsonb,  -- e.g. ["Track spending for 30 days", ...]
   chapters jsonb default '[]'::jsonb,       -- e.g. [{"title": "Intro", "start_time": 0}, ...]
+  formatted_transcript jsonb default null,  -- AI-structured sections for blog-like reading: [{heading, start_time, end_time, paragraphs[]}]
 
   view_count integer default 0,
   search_vector tsvector,                   -- populated by refresh_video_search(), see below
@@ -132,6 +133,29 @@ $$ language plpgsql;
 -- from videos, websearch_to_tsquery('english', 'emergency fund') query
 -- where search_vector @@ query and status = 'published'
 -- order by rank desc;
+
+-- ============================================================
+-- Database stats: used by the /admin/database page
+-- Run this in Supabase SQL editor after deploying.
+-- ============================================================
+create or replace function get_db_stats()
+returns json
+language sql
+security definer
+as $$
+  select json_build_object(
+    'database_size', pg_size_pretty(pg_database_size(current_database())),
+    'tables', coalesce((
+      select json_agg(json_build_object(
+        'name', t.tablename,
+        'row_count', (select reltuples::bigint from pg_class where relname = t.tablename),
+        'total_size', pg_size_pretty(pg_total_relation_size(quote_ident(t.schemaname) || '.' || quote_ident(t.tablename)))
+      ) order by (select reltuples::bigint from pg_class where relname = t.tablename) desc)
+      from pg_tables t
+      where t.schemaname = 'public'
+    ), '[]'::json)
+  );
+$$;
 
 -- ============================================================
 -- Common query patterns for reference

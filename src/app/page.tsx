@@ -19,12 +19,15 @@ export default async function HomePage() {
     .returns<VideoWithJoins[]>();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-16">
       <section>
-        <h1 className="text-2xl font-bold mb-2">Latest Videos</h1>
-        <p className="text-muted-foreground mb-6">
-          Curated picks with synced transcripts, AI summaries, and search.
-        </p>
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold tracking-tight">Latest Videos</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mt-3">
+            Curated picks with synced transcripts, AI summaries, and full-text
+            search across every video.
+          </p>
+        </div>
 
         {!videos || videos.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground/70">
@@ -39,7 +42,6 @@ export default async function HomePage() {
               <VideoCard
                 key={video.id}
                 video={video}
-                channel={video.channels}
                 category={video.categories}
               />
             ))}

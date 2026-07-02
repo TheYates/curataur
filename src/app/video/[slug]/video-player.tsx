@@ -43,7 +43,7 @@ export default function VideoPlayer({ youtubeId }: VideoPlayerProps) {
     }
 
     function createPlayer() {
-      if (!window.YT?.Player) return;
+      if (!window.YT?.Player || !container) return;
       playerRef.current = new YT.Player(container, {
         videoId: youtubeId,
         height: "100%",

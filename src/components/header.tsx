@@ -13,10 +13,10 @@ export default async function Header() {
   const categories = data ?? [];
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-bold text-xl">
+          <Link href="/" className="font-bold text-xl tracking-tight">
             Curataur
           </Link>
           {categories && categories.length > 0 && (
@@ -25,7 +25,7 @@ export default async function Header() {
                 <Link
                   key={cat.id}
                   href={`/category/${cat.slug}`}
-                  className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                 >
                   {cat.name}
                 </Link>
@@ -36,9 +36,15 @@ export default async function Header() {
         <nav className="flex items-center gap-4">
           <Link
             href="/search"
-            className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Search
+          </Link>
+          <Link
+            href="/admin"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Admin
           </Link>
           <ModeToggle />
         </nav>

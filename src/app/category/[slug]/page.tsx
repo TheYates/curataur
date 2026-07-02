@@ -37,16 +37,16 @@ export default async function CategoryPage({
     .returns<VideoWithJoins[]>();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">{category.name}</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+    <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="mb-12">
+        <h1 className="text-4xl font-bold tracking-tight">{category.name}</h1>
+        <p className="text-muted-foreground mt-3 text-lg">
           {videos?.length ?? 0} video{(videos?.length ?? 0) !== 1 ? "s" : ""}
         </p>
       </div>
 
       {!videos || videos.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-muted-foreground/70">
           <p className="text-lg font-medium">No videos yet</p>
           <p className="text-sm mt-1">
             No published videos in this category yet.
@@ -58,7 +58,6 @@ export default async function CategoryPage({
             <VideoCard
               key={video.id}
               video={video}
-              channel={video.channels}
               category={video.categories}
             />
           ))}

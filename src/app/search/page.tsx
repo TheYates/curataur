@@ -40,19 +40,19 @@ export default async function SearchPage({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Search</h1>
+    <div className="max-w-5xl mx-auto px-4 py-16">
+      <h1 className="text-4xl font-bold tracking-tight mb-8">Search</h1>
 
       <SearchInput initialQuery={query} />
 
       {query && (
         <div className="mt-8">
           {videos.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground/70">
               <p className="text-lg font-medium">No results found</p>
               <p className="text-sm mt-1">
                 No videos matched{" "}
-                <span className="font-medium text-gray-600 dark:text-gray-300">
+                <span className="font-medium text-foreground/60">
                   &ldquo;{query}&rdquo;
                 </span>
                 . Try a different search term.
@@ -60,16 +60,15 @@ export default async function SearchPage({
             </div>
           ) : (
             <>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 {videos.length} result{videos.length !== 1 ? "s" : ""} for{" "}
-                <span className="font-medium">&ldquo;{query}&rdquo;</span>
+                <span className="font-medium text-foreground/60">&ldquo;{query}&rdquo;</span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {videos.map((video) => (
                   <VideoCard
                     key={video.id}
                     video={video}
-                    channel={video.channels}
                     category={video.categories}
                   />
                 ))}
@@ -80,7 +79,7 @@ export default async function SearchPage({
       )}
 
       {!query && (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground/70">
           <p className="text-sm">
             Search across every video&rsquo;s full transcript.
           </p>
