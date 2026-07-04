@@ -1,5 +1,10 @@
 /**
  * Helper for calling Gemini API with retry-on-429 logic.
+ *
+ * Gemini free-tier API keys are rate limited to ~2 requests per minute for
+ * gemini-2.0-flash and 30 RPM for flash-lite. New keys often start at the
+ * lowest tier. This uses exponential backoff so a burst of requests or a
+ * freshly created key has time for the quota to replenish.
  */
 
 interface GeminiResponse {
@@ -17,9 +22,14 @@ export async function callGemini(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
+  // Use flash-lite (30 RPM free tier) instead of flash (2 RPM) — same quality
+  // for transcript analysis, much higher rate limit headroom.
   const model = "gemini-2.0-flash-lite";
 
-  const maxRetries = 3;
+  // Single retry: 30s delay.
+  // Combined with the 30 RPM of flash-lite this handles a brief burst.
+  const baseDelayMs = 30_000;
+  const maxRetries = 1;
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -49,18 +59,20 @@ export async function callGemini(
       // Read body once — it can't be read twice
       const bodyText = await res.text();
 
-      // 429 — rate limited, retry with delay
+      // 429 — rate limited, retry with exponential backoff
       if (res.status === 429) {
-        let delayMs = 30_000; // default 30s
+        // Honor the server's suggested delay if provided; otherwise use
+        // exponential backoff: 30s → 60s → 120s → 240s → 480s
+        let delayMs = baseDelayMs * Math.pow(2, attempt);
 
         try {
           const errBody: RetryDelay = JSON.parse(bodyText);
           if (errBody.retryDelay) {
             const parsed = parseDuration(errBody.retryDelay);
-            if (parsed) delayMs = parsed * 1000 + 1_000; // add 1s buffer
+            if (parsed) delayMs = Math.max(parsed * 1000, delayMs) + 1_000;
           }
         } catch {
-          // couldn't parse body, use default
+          // couldn't parse body, use exponential backoff
         }
 
         if (attempt < maxRetries) {

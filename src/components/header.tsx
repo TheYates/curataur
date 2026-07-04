@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ModeToggle } from "@/components/mode-toggle";
+import SearchCommand from "@/components/search-command";
 
 export default async function Header() {
   const supabase = await createClient();
@@ -33,19 +34,8 @@ export default async function Header() {
             </nav>
           )}
         </div>
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/search"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Search
-          </Link>
-          <Link
-            href="/admin"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Admin
-          </Link>
+        <nav className="flex items-center gap-1">
+          <SearchCommand />
           <ModeToggle />
         </nav>
       </div>

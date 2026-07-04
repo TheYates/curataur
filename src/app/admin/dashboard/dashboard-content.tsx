@@ -72,10 +72,10 @@ export default function DashboardContent({
       </div>
 
       {/* Video table */}
-      <VideoTable videos={videos} onEdit={(v) => setEditVideo(v)} />
+      <VideoTable videos={videos} onEdit={(v) => setEditVideo(v)} allCategories={categories} />
 
       {/* Dialogs */}
-      <AddVideoDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddVideoDialog open={addOpen} onOpenChange={setAddOpen} categories={categories} />
       <EditVideoDialog
         video={editVideo}
         categories={categories}

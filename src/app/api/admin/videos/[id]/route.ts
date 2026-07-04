@@ -50,6 +50,7 @@ export async function PATCH(
     "difficulty",
     "category_id",
     "status",
+    "curator_note",
     "ai_summary",
     "key_takeaways",
     "chapters",

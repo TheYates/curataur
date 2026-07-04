@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +29,6 @@ import {
   RefreshCw,
   ExternalLink,
   Save,
-  X,
 } from "lucide-react";
 
 interface Category {
@@ -50,6 +50,7 @@ interface VideoData {
   status: "draft" | "published";
   difficulty: string | null;
   category_id: string | null;
+  curator_note: string | null;
   ai_summary: string | null;
   key_takeaways: string[];
   chapters: ChapterData[];
@@ -69,10 +70,6 @@ export default function EditForm({ video, categories }: EditFormProps) {
   const [regenerating, setRegenerating] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   // Form state
   const [title, setTitle] = useState(video.title);
@@ -81,6 +78,7 @@ export default function EditForm({ video, categories }: EditFormProps) {
   const [status, setStatus] = useState(video.status);
   const [categoryId, setCategoryId] = useState(video.category_id ?? "");
   const [customCategory, setCustomCategory] = useState("");
+  const [curatorNote, setCuratorNote] = useState(video.curator_note ?? "");
   const [summary, setSummary] = useState(video.ai_summary ?? "");
   const [takeaways, setTakeaways] = useState<string[]>(
     Array.isArray(video.key_takeaways) ? video.key_takeaways : [],
@@ -91,13 +89,13 @@ export default function EditForm({ video, categories }: EditFormProps) {
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage(null);
 
     const body: Record<string, unknown> = {
       title,
       slug,
       difficulty: difficulty === "none" ? null : difficulty,
       status,
+      curator_note: curatorNote || null,
       ai_summary: summary || null,
       key_takeaways: takeaways.filter((t) => t.trim()),
       chapters: chapters.filter((c) => c.title.trim()),
@@ -119,14 +117,14 @@ export default function EditForm({ video, categories }: EditFormProps) {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Video saved successfully." });
+        toast.success("Video saved successfully.");
         router.refresh();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error ?? "Failed to save." });
+        toast.error(data.error ?? "Failed to save.");
       }
     } catch {
-      setMessage({ type: "error", text: "Network error. Please try again." });
+      toast.error("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -134,7 +132,6 @@ export default function EditForm({ video, categories }: EditFormProps) {
 
   const handleRegenerateAI = async () => {
     setRegenerating(true);
-    setMessage(null);
 
     try {
       const res = await fetch(`/api/admin/videos/${video.id}/regenerate`, {
@@ -142,17 +139,14 @@ export default function EditForm({ video, categories }: EditFormProps) {
       });
 
       if (res.ok) {
-        setMessage({
-          type: "success",
-          text: "AI content regenerated successfully. Reloading...",
-        });
+        toast.success("AI content regenerated successfully. Reloading...");
         router.refresh();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error ?? "Regeneration failed." });
+        toast.error(data.error ?? "Regeneration failed.");
       }
     } catch {
-      setMessage({ type: "error", text: "Network error during regeneration." });
+      toast.error("Network error during regeneration.");
     } finally {
       setRegenerating(false);
     }
@@ -165,10 +159,11 @@ export default function EditForm({ video, categories }: EditFormProps) {
         method: "DELETE",
       });
       if (res.ok) {
+        toast.success("Video deleted.");
         router.push("/admin/dashboard");
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to delete." });
+      toast.error("Failed to delete.");
       setDeleting(false);
     }
   };
@@ -201,22 +196,6 @@ export default function EditForm({ video, categories }: EditFormProps) {
 
   return (
     <div className="space-y-8">
-      {/* Message banner */}
-      {message && (
-        <div
-          className={`rounded-lg border px-4 py-3 text-sm flex items-center justify-between ${
-            message.type === "success"
-              ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300"
-              : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
-          }`}
-        >
-          <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="shrink-0 ml-2">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
       {/* Video info bar */}
       <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
         <div className="w-24 h-14 rounded overflow-hidden shrink-0 bg-muted">
@@ -323,6 +302,18 @@ export default function EditForm({ video, categories }: EditFormProps) {
             placeholder="New category name..."
             value={customCategory}
             onChange={(e) => setCustomCategory(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">
+            Curator&rsquo;s Note
+          </label>
+          <Textarea
+            rows={2}
+            value={curatorNote}
+            onChange={(e) => setCuratorNote(e.target.value)}
+            placeholder="Why was this video curated? (Shown on the video page as an editorial note)"
           />
         </div>
 

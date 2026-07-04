@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,6 @@ import {
   RefreshCw,
   Trash2,
   Plus,
-  X,
   ExternalLink,
 } from "lucide-react";
 import type { VideoRow } from "./video-table";
@@ -56,6 +56,7 @@ export default function EditVideoDialog({
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [categoryId, setCategoryId] = useState("");
   const [customCategory, setCustomCategory] = useState("");
+  const [curatorNote, setCuratorNote] = useState("");
   const [summary, setSummary] = useState("");
   const [takeaways, setTakeaways] = useState<string[]>([]);
   const [chapters, setChapters] = useState<{ title: string; start_time: number }[]>([]);
@@ -64,7 +65,6 @@ export default function EditVideoDialog({
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Populate form when video changes
   useEffect(() => {
@@ -74,22 +74,22 @@ export default function EditVideoDialog({
       setStatus(video.status);
       setCategoryId(video.category_id ?? "");
       setCustomCategory("");
+      setCuratorNote(video.curator_note ?? "");
       setSummary(video.ai_summary ?? "");
       setTakeaways(Array.isArray(video.key_takeaways) ? video.key_takeaways : []);
       setChapters(Array.isArray(video.chapters) ? video.chapters : []);
-      setMessage(null);
     }
   }, [video]);
 
   const handleSave = async () => {
     if (!video) return;
     setSaving(true);
-    setMessage(null);
 
     const body: Record<string, unknown> = {
       title,
       slug,
       status,
+      curator_note: curatorNote || null,
       ai_summary: summary || null,
       key_takeaways: takeaways.filter((t) => t.trim()),
       chapters: chapters.filter((c) => c.title.trim()),
@@ -111,14 +111,14 @@ export default function EditVideoDialog({
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Saved successfully." });
+        toast.success("Video saved successfully.");
         router.refresh();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error ?? "Failed to save." });
+        toast.error(data.error ?? "Failed to save.");
       }
     } catch {
-      setMessage({ type: "error", text: "Network error." });
+      toast.error("Network error saving video.");
     } finally {
       setSaving(false);
     }
@@ -127,7 +127,6 @@ export default function EditVideoDialog({
   const handleRegenerateAI = async () => {
     if (!video) return;
     setRegenerating(true);
-    setMessage(null);
 
     try {
       const res = await fetch(`/api/admin/videos/${video.id}/regenerate`, {
@@ -135,14 +134,14 @@ export default function EditVideoDialog({
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "AI regenerated. Reloading..." });
+        toast.success("AI content regenerated. Reloading...");
         router.refresh();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error ?? "Regeneration failed." });
+        toast.error(data.error ?? "Regeneration failed.");
       }
     } catch {
-      setMessage({ type: "error", text: "Network error." });
+      toast.error("Network error during regeneration.");
     } finally {
       setRegenerating(false);
     }
@@ -156,11 +155,12 @@ export default function EditVideoDialog({
         method: "DELETE",
       });
       if (res.ok) {
+        toast.success("Video deleted.");
         onOpenChange(false);
         router.refresh();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to delete." });
+      toast.error("Failed to delete video.");
       setDeleting(false);
     }
   };
@@ -214,22 +214,6 @@ export default function EditVideoDialog({
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          {/* Message */}
-          {message && (
-            <div
-              className={`rounded-lg border px-4 py-3 text-sm flex items-center justify-between ${
-                message.type === "success"
-                  ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300"
-                  : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
-              }`}
-            >
-              <span>{message.text}</span>
-              <button onClick={() => setMessage(null)} className="shrink-0 ml-2">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
           {/* basic fields */}
           <div>
             <label className="text-sm font-medium mb-1.5 block">Title</label>
@@ -290,6 +274,19 @@ export default function EditVideoDialog({
                 onChange={(e) => setCustomCategory(e.target.value)}
               />
             </div>
+          </div>
+
+          {/* Curator's Note — EEAT signal */}
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">
+              Curator&rsquo;s Note
+            </label>
+            <Textarea
+              rows={2}
+              value={curatorNote}
+              onChange={(e) => setCuratorNote(e.target.value)}
+              placeholder="Why was this video curated? (Shown on the video page as an editorial note)"
+            />
           </div>
 
           {/* Summary */}

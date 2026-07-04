@@ -54,6 +54,7 @@ create table videos (
   difficulty text
     check (difficulty in ('beginner','intermediate','advanced')),
 
+  curator_note text,                       -- short human-written EEAT note: why this video was curated
   ai_summary text,
   key_takeaways jsonb default '[]'::jsonb,  -- e.g. ["Track spending for 30 days", ...]
   chapters jsonb default '[]'::jsonb,       -- e.g. [{"title": "Intro", "start_time": 0}, ...]
@@ -90,7 +91,9 @@ create table transcript_segments (
   start_time numeric(8,2) not null,
   end_time numeric(8,2) not null,
   text text not null,
-  order_index integer not null
+  order_index integer not null,
+  section_header text,
+  starts_new_paragraph boolean not null default false
 );
 
 create index idx_segments_video on transcript_segments(video_id, order_index);

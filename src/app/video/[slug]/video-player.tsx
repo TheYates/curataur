@@ -51,6 +51,7 @@ export default function VideoPlayer({ youtubeId }: VideoPlayerProps) {
         playerVars: {
           rel: 0,
           modestbranding: 1,
+          mute: 1,
         },
         events: { onReady },
       });

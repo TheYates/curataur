@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -21,6 +22,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Edit, Trash2, ExternalLink, Eye, EyeOff } from "lucide-react";
 
 export interface VideoRow {
@@ -34,6 +42,7 @@ export interface VideoRow {
   channels: { name: string } | null;
   categories: { name: string } | null;
   category_id: string | null;
+  curator_note: string | null;
   ai_summary: string | null;
   key_takeaways: string[];
   chapters: { title: string; start_time: number }[];
@@ -42,6 +51,7 @@ export interface VideoRow {
 interface VideoTableProps {
   videos: VideoRow[];
   onEdit: (video: VideoRow) => void;
+  allCategories: { id: string; name: string }[];
 }
 
 function formatDate(dateStr: string) {
@@ -56,10 +66,38 @@ function formatDate(dateStr: string) {
   }
 }
 
-export default function VideoTable({ videos, onEdit }: VideoTableProps) {
+const PAGE_SIZE = 20;
+
+export default function VideoTable({ videos, onEdit, allCategories }: VideoTableProps) {
   const router = useRouter();
+  const [page, setPage] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const totalPages = Math.max(1, Math.ceil(videos.length / PAGE_SIZE));
+
+  // Reset to first page when videos list changes (add/delete)
+  useEffect(() => {
+    setPage(0);
+  }, [videos.length]);
+
+  const pagedVideos = videos.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handleCategoryChange = async (video: VideoRow, categoryId: string) => {
+    try {
+      const res = await fetch(`/api/admin/videos/${video.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: categoryId === "none" ? null : categoryId }),
+      });
+      if (res.ok) {
+        toast.success("Category updated.");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Failed to update category.");
+    }
+  };
 
   const handleToggleStatus = async (video: VideoRow) => {
     const newStatus = video.status === "published" ? "draft" : "published";
@@ -69,8 +107,12 @@ export default function VideoTable({ videos, onEdit }: VideoTableProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        toast.success(newStatus === "published" ? "Video published." : "Video unpublished.");
+        router.refresh();
+      }
     } catch (err) {
+      toast.error("Failed to toggle status.");
       console.error("Failed to toggle status:", err);
     }
   };
@@ -83,10 +125,12 @@ export default function VideoTable({ videos, onEdit }: VideoTableProps) {
         method: "DELETE",
       });
       if (res.ok) {
+        toast.success("Video deleted.");
         setDeleteId(null);
         router.refresh();
       }
     } catch (err) {
+      toast.error("Failed to delete video.");
       console.error("Failed to delete:", err);
     } finally {
       setDeleting(false);
@@ -114,7 +158,7 @@ export default function VideoTable({ videos, onEdit }: VideoTableProps) {
               </TableCell>
             </TableRow>
           ) : (
-            videos.map((video) => (
+            pagedVideos.map((video) => (
               <TableRow key={video.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -135,13 +179,15 @@ export default function VideoTable({ videos, onEdit }: VideoTableProps) {
                       <p className="text-sm font-medium leading-snug truncate max-w-[220px]">
                         {video.title}
                       </p>
-                      <a
-                        href={`/video/${video.slug}`}
-                        target="_blank"
-                        className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                      >
-                        View <ExternalLink className="h-3 w-3" />
-                      </a>
+                      {video.status === "published" && (
+                        <a
+                          href={`/video/${video.slug}`}
+                          target="_blank"
+                          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                        >
+                          View <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
                     </div>
                   </div>
                 </TableCell>
@@ -154,13 +200,22 @@ export default function VideoTable({ videos, onEdit }: VideoTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {video.categories ? (
-                    <Badge variant="outline" className="text-[11px]">
-                      {video.categories.name}
-                    </Badge>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
+                  <Select
+                    value={video.category_id ?? "none"}
+                    onValueChange={(val) => handleCategoryChange(video, val)}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-xs">None</SelectItem>
+                      {allCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {video.channels?.name ?? "—"}
@@ -242,6 +297,35 @@ export default function VideoTable({ videos, onEdit }: VideoTableProps) {
           )}
         </TableBody>
       </Table>
+      {/* Pagination */}
+      {videos.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between border-t border-border px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            {videos.length} total
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground px-2">
+              Page {page + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

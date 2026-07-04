@@ -49,16 +49,34 @@ export default async function Footer() {
             <h4 className="text-sm font-semibold mb-3">Links</h4>
             <nav className="flex flex-col gap-2">
               <Link
-                href="/search"
+                href="/"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Search
+                Home
               </Link>
               <Link
-                href="/admin"
+                href="/about"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Admin
+                About
+              </Link>
+              <Link
+                href="/contact"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Contact
+              </Link>
+              <Link
+                href="/privacy"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/disclosure"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Disclosure
               </Link>
             </nav>
           </div>

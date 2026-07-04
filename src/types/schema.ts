@@ -93,6 +93,7 @@ export interface Video {
   added_at: string;
   status: "draft" | "published";
   difficulty: "beginner" | "intermediate" | "advanced" | null;
+  curator_note: string | null;
   ai_summary: string | null;
   key_takeaways: string[];
   chapters: Chapter[];
@@ -127,6 +128,8 @@ export interface TranscriptSegment {
   end_time: number;
   text: string;
   order_index: number;
+  section_header: string | null;
+  starts_new_paragraph: boolean;
 }
 
 export interface Subscriber {
