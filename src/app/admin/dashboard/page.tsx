@@ -1,27 +1,29 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdminSession } from "@/lib/admin-auth";
 import DashboardContent from "./dashboard-content";
+import SignOutButton from "../sign-out-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin Dashboard — Curataur" };
 
 export default async function AdminDashboardPage() {
   // Auth check
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
-  if (session !== "authenticated") redirect("/admin");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !(await isAdminSession(user.id))) redirect("/admin");
 
-  const supabase = createAdminClient();
+  const adminSupabase = createAdminClient();
 
   // Fetch all videos with joins
-  const { data: videos } = await supabase
+  const { data: videos } = await adminSupabase
     .from("videos")
     .select("*, channels(name), categories(name)")
     .order("added_at", { ascending: false });
 
   // Fetch categories for the dropdown
-  const { data: categories } = await supabase
+  const { data: categories } = await adminSupabase
     .from("categories")
     .select("id, name")
     .order("name");
@@ -55,6 +57,7 @@ export default async function AdminDashboardPage() {
             >
               View Site →
             </a>
+            <SignOutButton />
           </div>
         </div>
 

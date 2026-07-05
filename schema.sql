@@ -176,3 +176,26 @@ $$;
 --   where vt.tag_id in (select tag_id from video_tags where video_id = $1)
 --     and v.id != $1 and v.status = 'published'
 --   limit 4;
+
+-- ------------------------------------------------------------
+-- admin_users: who can access /admin/* (manage via Supabase Auth > Users)
+-- ------------------------------------------------------------
+create table if not exists admin_users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  added_at timestamptz default now()
+);
+
+-- Give the service role and authenticated anon access to read this table
+alter table admin_users enable row level security;
+
+create policy "Service role can do anything on admin_users"
+  on admin_users for all
+  to service_role
+  using (true)
+  with check (true);
+
+create policy "Admin users can read admin_users"
+  on admin_users for select
+  to authenticated
+  using (true);

@@ -1,13 +1,13 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { isAdminSession } from "@/lib/admin-auth";
 import AddVideoForm from "./add-video-form";
 
 export default async function AddVideoPage() {
-  const cookieStore = await cookies();
-  const isAuthenticated =
-    cookieStore.get("admin_session")?.value === "authenticated";
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!isAuthenticated) {
+  if (!user || !(await isAdminSession(user.id))) {
     redirect("/admin");
   }
 

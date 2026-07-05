@@ -1,32 +1,33 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 
-export async function POST(request: Request) {
-  const { password } = await request.json();
+/**
+ * GET /api/admin/auth — check if there's a valid session
+ */
+export async function GET() {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  return NextResponse.json({ authenticated: !!session });
+}
 
-  if (password === process.env.ADMIN_PASSWORD) {
-    const cookieStore = await cookies();
-    cookieStore.set("admin_session", "authenticated", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24, // 24 hours
-      path: "/",
-    });
-
-    return NextResponse.json({ success: true });
-  }
-
+/**
+ * POST /api/admin/auth — no longer used (Supabase handles login via magic link)
+ */
+export async function POST() {
   return NextResponse.json(
-    { success: false, error: "Invalid password" },
-    { status: 401 },
+    { error: "Use Supabase Auth directly via the browser client." },
+    { status: 410 },
   );
 }
 
-export async function GET() {
-  // Check if already authenticated
-  const cookieStore = await cookies();
-  const isAdmin = cookieStore.get("admin_session")?.value === "authenticated";
-
-  return NextResponse.json({ authenticated: isAdmin });
+/**
+ * DELETE /api/admin/auth — sign out
+ */
+export async function DELETE() {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ success: true });
 }

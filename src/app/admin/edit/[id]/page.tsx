@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdminSession } from "@/lib/admin-auth";
 import { notFound } from "next/navigation";
 import EditForm from "./edit-form";
 
@@ -13,14 +14,14 @@ interface EditPageProps {
 
 export default async function EditVideoPage({ params }: EditPageProps) {
   // Auth check
-  const cookieStore = await cookies();
-  const session = cookieStore.get("admin_session")?.value;
-  if (session !== "authenticated") redirect("/admin");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !(await isAdminSession(user.id))) redirect("/admin");
 
   const { id } = await params;
-  const supabase = createAdminClient();
+  const adminSupabase = createAdminClient();
 
-  const { data: video } = await supabase
+  const { data: video } = await adminSupabase
     .from("videos")
     .select("*, channels(name), categories(name)")
     .eq("id", id)
@@ -29,7 +30,7 @@ export default async function EditVideoPage({ params }: EditPageProps) {
   if (!video) notFound();
 
   // Get all categories for the dropdown
-  const { data: categories } = await supabase
+  const { data: categories } = await adminSupabase
     .from("categories")
     .select("id, name")
     .order("name");

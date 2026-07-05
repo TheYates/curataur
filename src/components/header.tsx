@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { ModeToggle } from "@/components/mode-toggle";
 import SearchCommand from "@/components/search-command";
+import SignOutButton from "@/app/admin/sign-out-button";
 
 export default async function Header() {
+  const h = await headers();
+  const pathname = h.get("x-invoke-path") ?? "";
+  const isAdmin = pathname.startsWith("/admin");
+
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -17,10 +23,10 @@ export default async function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-bold text-xl tracking-tight">
+          <Link href={isAdmin ? "/admin/dashboard" : "/"} className="font-bold text-xl tracking-tight">
             Curataur
           </Link>
-          {categories && categories.length > 0 && (
+          {!isAdmin && categories && categories.length > 0 && (
             <nav className="hidden sm:flex items-center gap-1">
               {categories.map((cat) => (
                 <Link
@@ -35,8 +41,14 @@ export default async function Header() {
           )}
         </div>
         <nav className="flex items-center gap-1">
-          <SearchCommand />
-          <ModeToggle />
+          {isAdmin ? (
+            <SignOutButton />
+          ) : (
+            <>
+              <SearchCommand />
+              <ModeToggle />
+            </>
+          )}
         </nav>
       </div>
     </header>
