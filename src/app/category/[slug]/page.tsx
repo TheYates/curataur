@@ -1,8 +1,16 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import VideoCard from "@/components/video-card";
 import type { Metadata } from "next";
 import type { Video, Channel, Category } from "@/types/schema";
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const supabase = createPublicClient();
+  const { data } = await supabase.from("categories").select("slug");
+  return (data ?? []).map((c) => ({ slug: c.slug }));
+}
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -14,7 +22,7 @@ export async function generateMetadata({
   params,
 }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   const { data: category } = await supabase
     .from("categories")
@@ -52,7 +60,7 @@ export default async function CategoryPage({
   params,
 }: CategoryPageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   // Look up the category
   const { data: category } = await supabase

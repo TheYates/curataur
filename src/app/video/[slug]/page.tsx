@@ -1,9 +1,21 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Badge } from "@/components/ui/badge";
 import PageClient from "./page-client";
 import type { Metadata } from "next";
 import type { Video, Channel, Category } from "@/types/schema";
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const supabase = createPublicClient();
+  const { data } = await supabase
+    .from("videos")
+    .select("slug")
+    .eq("status", "published");
+
+  return (data ?? []).map((v) => ({ slug: v.slug }));
+}
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,7 +25,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   const { data: video } = await supabase
     .from("videos")
@@ -73,7 +85,7 @@ function durationToIso(seconds: number | null): string | undefined {
 
 export default async function VideoPage({ params }: PageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = await createPublicClient();
 
   const { data: video } = await supabase
     .from("videos")
